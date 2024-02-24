@@ -68,14 +68,16 @@ select
     -- timestamps
     cast(pickup_datetime as timestamp) as pickup_datetime,
     cast(dropOff_datetime as timestamp) as dropoff_datetime,
+    SR_Flag as sr_flag,
     Affiliated_base_number as affiliated_base_number
 
 
 from {{source("staging", "fhv_tripdata")}}
-where PUlocationID is not null and DOlocationID is not null
+where PUlocationID is not null and DOlocationID is not null and date(pickup_datetime) between '2019-01-01' and '2019-12-31'
 
 -- dbt build --select <model.sql> --vars '{'is_test_run: false}'
 {% if var("is_test_run", default=true) %} limit 100 {% endif %}
+
 ```
 
 **fact_fhv_trips.sql**
@@ -98,6 +100,7 @@ select
     dropoff_zone.zone as dropoff_zone,
     fhv_data.pickup_datetime,
     fhv_data.dropoff_datetime,
+    fhv_data.sr_flag,
     fhv_data.affiliated_base_number
 
 from fhv_data
@@ -105,10 +108,6 @@ inner join
     dim_zones as pickup_zone on pickup_zone.locationid = fhv_data.pickup_locationid
 inner join
     dim_zones as dropoff_zone on dropoff_zone.locationid = fhv_data.dropoff_locationid
-
-where date(fhv_data.pickup_datetime) between '2019-01-01' and '2019-12-31'
-
-
 ```
 
 - 12998722
@@ -131,8 +130,11 @@ Create a dashboard with some tiles that you find interesting to explore the data
 
 trips count on July 2019
 
-1. Yellow (3,250,102) trips
-2. Green (415,281)
-3. FHV(290,680)
+1. July 2019 Yellow trip counts (3,250,102) trips
+   ![July 2019 Yellow counts](yellow_count.png "July 2019 Yellow counts")
+2. July 2019 Green trip counts (415,281)
+   ![July 2019 Green counts](green_count.png "July 2019 Green counts")
+3. July 2019 FHV trip counts(290,680)
+   ![July 2019 FHV counts](fhv_count.png "July 2019 FHV counts")
 
 **Answer:** Yellow
