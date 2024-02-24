@@ -52,10 +52,71 @@ Create a core model similar to fact trips, but selecting from stg_fhv_tripdata a
 Similar to what we've done in fact_trips, keep only records with known pickup and dropoff locations entries for pickup and dropoff locations.
 Run the dbt model without limits (is_test_run: false).
 
+**stg_fvh_tripdata.sql**
+
+```sql
+{{ config(materialized="view") }}
+
+
+select
+    dispatching_base_num,
+    {{ dbt.safe_cast("PUlocationID", api.Column.translate_type("integer")) }}
+    as pickup_locationid,
+    {{ dbt.safe_cast("DOlocationID", api.Column.translate_type("integer")) }}
+    as dropoff_locationid,
+
+    -- timestamps
+    cast(pickup_datetime as timestamp) as pickup_datetime,
+    cast(dropOff_datetime as timestamp) as dropoff_datetime,
+    Affiliated_base_number as affiliated_base_number
+
+
+from {{source("staging", "fhv_tripdata")}}
+where PUlocationID is not null and DOlocationID is not null
+
+-- dbt build --select <model.sql> --vars '{'is_test_run: false}'
+{% if var("is_test_run", default=true) %} limit 100 {% endif %}
+```
+
+**fact_fhv_trips.sql**
+
+```sql
+{{ config(materialized="table") }}
+
+with
+    fhv_data as (select *, 'FHV' as service_type, from {{ ref("stg_fhv_tripdata") }}),
+    dim_zones as (select * from {{ ref("dim_zones") }} where borough != 'Unknown')
+
+select
+    fhv_data.dispatching_base_num,
+    fhv_data.service_type,
+    fhv_data.pickup_locationid,
+    pickup_zone.borough as pickup_borough,
+    pickup_zone.zone as pickup_zone,
+    fhv_data.dropoff_locationid,
+    dropoff_zone.borough as dropoff_borough,
+    dropoff_zone.zone as dropoff_zone,
+    fhv_data.pickup_datetime,
+    fhv_data.dropoff_datetime,
+    fhv_data.affiliated_base_number
+
+from fhv_data
+inner join
+    dim_zones as pickup_zone on pickup_zone.locationid = fhv_data.pickup_locationid
+inner join
+    dim_zones as dropoff_zone on dropoff_zone.locationid = fhv_data.dropoff_locationid
+
+where date(fhv_data.pickup_datetime) between '2019-01-01' and '2019-12-31'
+
+
+```
+
 - 12998722
 - 22998722
 - 32998722
 - 42998722
+
+**Answer**: 22998722
 
 ### Question 4 (2 points)
 
@@ -68,17 +129,10 @@ Create a dashboard with some tiles that you find interesting to explore the data
 - Yellow
 - FHV and Green
 
-## Submitting the solutions
+trips count on July 2019
 
-- Form for submitting: https://courses.datatalks.club/de-zoomcamp-2024/homework/hw4
+1. Yellow (3,250,102) trips
+2. Green (415,281)
+3. FHV(290,680)
 
-Deadline: 22 February (Thursday), 22:00 CET
-
-## Solution (To be published after deadline)
-
-- Video:
-- Answers:
-  - Question 1:
-  - Question 2:
-  - Question 3:
-  - Question 4:
+**Answer:** Yellow
