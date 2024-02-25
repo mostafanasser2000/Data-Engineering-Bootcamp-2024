@@ -17,7 +17,6 @@ We will use the data loaded for:
 If you don't have access to GCP, you can do this locally using the ingested data from your Postgres database
 instead. If you have access to GCP, you don't need to do it for local Postgres - only if you want to.
 
-> **Note**: if your answer doesn't match exactly, select the closest option
 
 ### Question 1:
 
